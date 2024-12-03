@@ -25,7 +25,7 @@ def convertir_secuencia_a_numeros(secuencia):
     return np.array([mapa[base] for base in secuencia], dtype=np.byte)
 
 # Función principal para generar el dotplot
-def dotplot_pycuda(secuencia1, secuencia2, bloque_tamano=1000):
+def dotplot_pycuda(secuencia1, secuencia2, bloque_tamano=500, subbloque_tamano=100):
     """
     Calcula el dotplot de dos secuencias utilizando PyCUDA, procesando por bloques y retornando el resultado completo.
 
@@ -33,6 +33,7 @@ def dotplot_pycuda(secuencia1, secuencia2, bloque_tamano=1000):
         secuencia1 (str): Primera secuencia.
         secuencia2 (str): Segunda secuencia.
         bloque_tamano (int): Tamaño del bloque para procesar las secuencias.
+        subbloque_tamano (int): Tamaño del subbloque para dividir los bloques.
 
     Returns:
         np.ndarray: Matriz del dotplot.
@@ -55,33 +56,45 @@ def dotplot_pycuda(secuencia1, secuencia2, bloque_tamano=1000):
             bloque1 = sec1_numerica[i:i + bloque_tamano]
             len_bloque1 = len(bloque1)
 
-            # Transferir el bloque de secuencia1 a la GPU
-            sec1_gpu = gpuarray.to_gpu(bloque1)
+            # Inicializar el bloque completo en la CPU
+            bloque_resultado = np.zeros((len_bloque1, len(secuencia2)), dtype=np.int32)
 
-            # Crear una submatriz para el bloque actual en la GPU
-            dotplot_gpu = gpuarray.zeros((len_bloque1, len(secuencia2)), dtype=np.int32)
+            # Dividir el bloque en subbloques para manejar la memoria
+            for j in range(0, len(secuencia2), subbloque_tamano):
+                subbloque2 = sec2_numerica[j:j + subbloque_tamano]
+                len_subbloque2 = len(subbloque2)
 
-            # Configurar la cuadrícula para el bloque actual
-            grid_size = (
-                (len_bloque1 + block_size[0] - 1) // block_size[0],
-                (len(secuencia2) + block_size[1] - 1) // block_size[1],
-            )
+                # Transferir los datos del subbloque a la GPU
+                sec1_gpu = gpuarray.to_gpu(bloque1)
+                sec2_gpu = gpuarray.to_gpu(subbloque2)
 
-            # Obtener la función CUDA
-            func = mod.get_function("generar_dotplot")
+                # Crear una submatriz para el subbloque actual en la GPU
+                dotplot_gpu = gpuarray.zeros((len_bloque1, len_subbloque2), dtype=np.int32)
 
-            # Ejecutar el kernel CUDA
-            func(
-                sec1_gpu, gpuarray.to_gpu(sec2_numerica), dotplot_gpu,
-                np.int32(len_bloque1), np.int32(len(secuencia2)),
-                block=block_size, grid=grid_size,
-            )
+                # Configurar la cuadrícula para el subbloque actual
+                grid_size = (
+                    (len_bloque1 + block_size[0] - 1) // block_size[0],
+                    (len_subbloque2 + block_size[1] - 1) // block_size[1],
+                )
 
-            # Copiar el resultado del bloque desde la GPU a la CPU
-            dotplot_bloque = dotplot_gpu.get()
+                # Obtener la función CUDA
+                func = mod.get_function("generar_dotplot")
 
-            # Agregar el bloque a la lista de resultados
-            dotplot.append(dotplot_bloque)
+                # Ejecutar el kernel CUDA
+                func(
+                    sec1_gpu, sec2_gpu, dotplot_gpu,
+                    np.int32(len_bloque1), np.int32(len_subbloque2),
+                    block=block_size, grid=grid_size,
+                )
+
+                # Copiar el resultado del subbloque desde la GPU a la CPU
+                dotplot_bloque = dotplot_gpu.get()
+
+                # Insertar el subbloque en el bloque completo
+                bloque_resultado[:, j:j + len_subbloque2] = dotplot_bloque
+
+            # Agregar el bloque completo a la lista de resultados
+            dotplot.append(bloque_resultado)
 
             # Actualizar la barra de progreso
             pbar.update(1)

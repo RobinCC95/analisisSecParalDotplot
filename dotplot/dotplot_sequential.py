@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
-def dotplot_secuencial(secuencia1, secuencia2, bloque_tamano=100):
+def dotplot_secuencial(secuencia1, secuencia2, bloque_tamano=1000):
     """
     Calcula el dotplot de dos secuencias en bloques para evitar problemas de memoria,
     mostrando una barra de progreso.

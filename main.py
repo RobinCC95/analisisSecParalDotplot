@@ -7,9 +7,26 @@ from dotplot.dotplot_pycuda import dotplot_pycuda
 from dotplot.image_filter import filtrar_diagonales
 import matplotlib.pyplot as plt
 
-def generar_dotplot(dotplot, nombre_salida):
+import matplotlib.pyplot as plt
+
+def generar_dotplot(dotplot, nombre_salida, bloque_tamano=500):
+    """
+    Genera un dotplot visualizando la matriz por bloques para evitar problemas de memoria.
+
+    Args:
+        dotplot (np.ndarray): Matriz del dotplot.
+        nombre_salida (str): Nombre del archivo de salida.
+        bloque_tamano (int): Tamaño del bloque para la visualización.
+    """
+    filas, columnas = dotplot.shape
     plt.figure(figsize=(10, 10))
-    plt.imshow(dotplot, cmap='Greys', aspect='auto')
+
+    # Visualizar por bloques
+    for i in range(0, filas, bloque_tamano):
+        for j in range(0, columnas, bloque_tamano):
+            submatriz = dotplot[i:i+bloque_tamano, j:j+bloque_tamano]
+            plt.imshow(submatriz, cmap='Greys', aspect='auto', extent=(j, j+submatriz.shape[1], i+submatriz.shape[0], i))
+
     plt.xlabel("Secuencia 2")
     plt.ylabel("Secuencia 1")
     plt.savefig(nombre_salida)
