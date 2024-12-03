@@ -3,3 +3,4 @@ numpy
 matplotlib
 pycuda
 biopython
+tqdm
