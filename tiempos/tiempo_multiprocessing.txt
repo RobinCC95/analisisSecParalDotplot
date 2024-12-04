@@ -1,0 +1,4 @@
+Tiempo carga datos: 0.01 segundos
+Tiempo calculo dotplot multiprocessing: 3.27 segundos
+Tiempo filtrado diagonales multiprocessing: 2.52 segundos
+Tiempo Graficas multiprocessing: 0.67 segundos

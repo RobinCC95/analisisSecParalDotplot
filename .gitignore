@@ -1,0 +1,14 @@
+./env
+env
+
+
+diagonales_memmap_mpi.dat
+diagonales_memmap_multiprocessing.dat
+diagonales_memmap_pycuda.dat
+diagonales_memmap_secuencial.dat
+
+
+dotplot_memmap_mpi.dat
+dotplot_memmap_multiprocessing.dat
+dotplot_memmap_pycuda.dat
+dotplot_memmap_secuencial.dat
